@@ -38,7 +38,7 @@ class Course
       title = x.css("td:nth-child(1) > a:nth-child(1)").text.strip
       deadline = x.css("td:nth-child(2)").text
       issuer = x.css("td:nth-child(4)").text.strip
-      url = x.css("td:nth-child(1) > a:nth-child(1)").attr("href")
+      url = x.css("td:nth-child(1) > a:nth-child(1)").attr("href").value
       status = x.css(".enter").empty? ? true : false
       memo << Task.new(@clnt, title, deadline, issuer, url, status)
     end

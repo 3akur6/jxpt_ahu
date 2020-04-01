@@ -1,15 +1,16 @@
 class Task
 
-  attr_reader :title, :pubtime, :deadline, :judgement, :content, :issuer
+  attr_reader :title, :pubtime, :deadline, :judgement, :content, :issuer, :commit
 
   def initialize(clnt, title, deadline, issuer, url, status)
     @title = title
     @deadline = deadline
     @issuer = issuer
-    @url = url
     @clnt = clnt
+    @id = url.split("=")[-1]
+    @commit = "http://jxpt.ahu.edu.cn/meol/common/hw/student/write.jsp?hwtid=#{@id}"
     @status = status # finished => true, unfinished => false
-    url = "http://jxpt.ahu.edu.cn/meol/common/hw/student/#{@url}"
+    url = "http://jxpt.ahu.edu.cn/meol/common/hw/student/hwtask.view.jsp?hwtid=#{@id}"
     res = @clnt.get_content(url)
     doc = Nokogiri::HTML(res)
     @title, @pubtime, @deadline, @judgement = doc.css(".infotable > tr > td").map { |x| x.text.gsub(/\n/, " ").strip.squeeze(" ") }
