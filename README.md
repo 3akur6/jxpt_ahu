@@ -10,16 +10,16 @@
 
 Login:`jxpt_ahu -u username -p password`
 
-then you will see a `cmd > ` prompt
+then you will see a `cmd \> ` prompt
 type `help` to access commands description
 
 ###For example:
 
->cmd > courses
->\#\# output here (courses that have some tasks unfinished)
->cmd > set course [id]
->course => [course name] (specify a course for further operations)
->cmd > tasks
->\#\# output here (display tasks of current course)
->cmd > info task [id]
->\#\# output here (detailed information for task)
+>cmd \> courses
+\#\# output here (courses that have some tasks unfinished)
+>cmd \> set course [id]
+course => [course name] (specify a course for further operations)
+>cmd \> tasks
+\#\# output here (display tasks of current course)
+>cmd \> info task [id]
+\#\# output here (detailed information for task)
