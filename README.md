@@ -19,7 +19,7 @@ type `help` to access commands description
 >`cmd > courses`   
 \#\# output here (courses that have some tasks unfinished)   
 `cmd > set course [id]`  
-course => [course name] (specify a course for further operations)   
+course => \[course name\] (specify a course for further operations)   
 `cmd > tasks`   
 \#\# output here (display tasks of current course)   
 `cmd > info task [id]`   
