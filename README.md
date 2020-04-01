@@ -8,12 +8,12 @@
 
 ## Usage
 
-Login:`jxpt_ahu -u username -p password`
+Login: `jxpt_ahu -u username -p password`
 
-then you will see a `cmd \> ` prompt
+then you will see a  `cmd > `  prompt
 type `help` to access commands description
 
-###For example:
+### For example:
 
 >cmd \> courses
 \#\# output here (courses that have some tasks unfinished)
