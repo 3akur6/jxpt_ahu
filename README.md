@@ -11,7 +11,7 @@
 Login:   
 `jxpt_ahu -u username -p password`
 
-then you will see a `cmd > ` prompt   
+then you will see a `cmd >` prompt   
 type `help` to access commands description
 
 ### For example:
