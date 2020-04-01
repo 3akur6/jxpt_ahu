@@ -1,4 +1,4 @@
-***jxpt_ahu*** - A simple client for site jxpt.ahu.edu.cn
+***jxpt_ahu*** - A simple client for site [jxpt.ahu.edu.cn](http://jxpt.ahu.edu.cn)
 
 ## Feature
 
