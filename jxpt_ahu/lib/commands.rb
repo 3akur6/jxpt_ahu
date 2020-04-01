@@ -151,7 +151,7 @@ def show_task(value)
         table = Terminal::Table.new do |t|
           t.title = "Task"
           t.add_row ["标题", task.title]
-          t.add_row ["链接", task.commit]
+          t.add_row ["链接", task.submit]
           t.add_row ["发布人", task.issuer]
           t.add_row ["发布时间", task.pubtime]
           t.add_row ["截止时间", task.deadline]

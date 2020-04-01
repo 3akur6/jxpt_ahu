@@ -1,6 +1,6 @@
 class Task
 
-  attr_reader :title, :pubtime, :deadline, :judgement, :content, :issuer, :commit
+  attr_reader :title, :pubtime, :deadline, :judgement, :content, :issuer, :submit
 
   def initialize(clnt, title, deadline, issuer, url, status)
     @title = title
@@ -8,7 +8,7 @@ class Task
     @issuer = issuer
     @clnt = clnt
     @id = url.split("=")[-1]
-    @commit = "http://jxpt.ahu.edu.cn/meol/common/hw/student/write.jsp?hwtid=#{@id}"
+    @submit = "http://jxpt.ahu.edu.cn/meol/common/hw/student/write.jsp?hwtid=#{@id}"
     @status = status # finished => true, unfinished => false
     url = "http://jxpt.ahu.edu.cn/meol/common/hw/student/hwtask.view.jsp?hwtid=#{@id}"
     res = @clnt.get_content(url)
