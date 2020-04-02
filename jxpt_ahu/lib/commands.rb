@@ -157,6 +157,7 @@ def show_task(value)
           t.add_row ["截止时间", task.deadline]
           t.add_row ["评分方式", task.judgement]
           t.add_row ["作业内容", task.content]
+          t.add_row ["附件", task.attachment]
           t.style = { :all_separators => true }
         end
         puts table

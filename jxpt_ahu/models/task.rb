@@ -1,6 +1,6 @@
 class Task
 
-  attr_reader :title, :pubtime, :deadline, :judgement, :content, :issuer, :submit
+  attr_reader :title, :pubtime, :deadline, :judgement, :content, :issuer, :submit, :attachment
 
   def initialize(clnt, title, deadline, issuer, url, status)
     @title = title
@@ -14,7 +14,9 @@ class Task
     res = @clnt.get_content(url)
     doc = Nokogiri::HTML(res)
     @title, @pubtime, @deadline, @judgement = doc.css(".infotable > tr > td").map { |x| x.text.gsub(/\n/, " ").strip.squeeze(" ") }
-    @content = Nokogiri::HTML(doc.css(".text > input").attr("value").text.gsub(/&nbsp;/, " ")).text.strip.squeeze(" ").chars.each_slice(50).to_a.map { |x| x.join + "\n" }.join
+    doc = Nokogiri::HTML(doc.css(".text > input").attr("value").value.gsub(/&nbsp;/, " "))
+    @content = doc.text.strip.squeeze(" ").chars.each_slice(50).to_a.map { |x| x.join + "\n" }.join
+    @attachment = doc.attr("href") ? "http://jxpt.ahu.edu.cn#{doc.attr("href").value}" : "无"
   end
 
   def finished?
