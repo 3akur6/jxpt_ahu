@@ -56,6 +56,7 @@ def cmd_help(cmd, args)
       :quit    => "Alias for exit",
       :set     => "Set a global variable to a value",
       :show    => "Alias for info",
+      :task    => "Get present task",
       :tasks   => "Get tasks in present course",
       :user    => "Show current user"
     }
