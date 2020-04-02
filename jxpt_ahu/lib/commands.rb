@@ -3,7 +3,7 @@ require 'terminal-table'
 TOO_MANY_ARGUMENT = Proc.new { print "\033[31m[-]\033[0m Too many arguments (expected 0)\n" }
 UNKNOWN_COMMAND = Proc.new { |cmd| print "\033[31m[-]\033[0m Unknown command: #{cmd}\n\nType \033[34mhelp\033[0m to see commands acceptable\n\n" }
 DID_YOU_MEAN = Proc.new { |cmd| print "Did you mean? \033[1m#{cmd}\033[0m\n"}
-MUST_SPECIFY_COURSE = Proc.new { print "\033[33m[!]\033[0m You must specify a course\n" }
+MUST_SPECIFY = Proc.new { |item| print "\033[33m[!]\033[0m You must specify a #{item}\n" }
 USAGE_FOR_MULTI = Proc.new { |cmd| print "\nUsage: \033[34m#{cmd}\033[0m option value\n\n" }
 UNKNOWN_OPTION = Proc.new { |option| print "\033[31m[-]\033[0m Unknown option: #{option}\n" }
 VALUE_OUT_OF_RANGE = Proc.new { print "\033[31m[-]\033[0m Wrong assignment (value out of length)\n" }
@@ -46,17 +46,18 @@ def cmd_help(cmd, args)
   cmd_without_args(cmd,args) do
     table = Terminal::Table.new headings: %w(Command Description)
     info = {
-      :course => "Get present course assigned before",
+      :course  => "Get present course assigned before",
       :courses => "Show current user's courses which have unfinished tasks",
-      :exit => "Exit the console",
-      :help => "Help menu",
-      :info => "Display detailed infomation",
+      :exit    => "Exit the console",
+      :get     => "get attachment included in specified task",
+      :help    => "Help menu",
+      :info    => "Display detailed infomation",
       :informs => "Display the newest informs of present course",
-      :quit => "Alias for exit",
-      :set => "Set a global variable to a value",
-      :show => "Alias for info",
-      :tasks => "Get tasks in present course",
-      :user => "Show current user"
+      :quit    => "Alias for exit",
+      :set     => "Set a global variable to a value",
+      :show    => "Alias for info",
+      :tasks   => "Get tasks in present course",
+      :user    => "Show current user"
     }
     info.inject([], :<<).each { |row| table << row }
     puts table
@@ -72,7 +73,7 @@ def cmd_course(cmd, args)
     if defined? @course
       print "#{@course.name}\n"
     else
-      MUST_SPECIFY_COURSE.call
+      MUST_SPECIFY.call("course")
     end
   end
 end
@@ -93,7 +94,17 @@ def cmd_tasks(cmd, args)
       @course.tasks.map.with_index { |x, idx| [idx, x.title, x.deadline, x.finished?.to_s] }.inject([], :<<).each { |row| table << row }
       puts table
     else
-      MUST_SPECIFY_COURSE.call
+      MUST_SPECIFY.call("course")
+    end
+  end
+end
+
+def cmd_task(cmd, args)
+  cmd_without_args(cmd, args) do
+    if defined? @task
+      print "#{@task.title}\n"
+    else
+      MUST_SPECIFY.call("task")
     end
   end
 end
@@ -105,7 +116,7 @@ def cmd_informs(cmd, args)
       @course.informs.map.with_index { |x, idx| [idx, x.title] }.inject([], :<<).each { |row| table << row }
       puts table
     else
-      MUST_SPECIFY_COURSE.call
+      MUST_SPECIFY.call("course")
     end
   end
 end
@@ -114,6 +125,7 @@ def cmd_set(cmd, args)
   cmd_with_args(cmd, args) do |option, value|
     case option
     when "course" then set_course(value)
+    when "task"   then set_task(value)
     else UNKNOWN_OPTION.call(option)
     end
   end
@@ -128,6 +140,22 @@ def cmd_show(cmd, args)
   end
 end
 
+def cmd_get(cmd, args)
+  cmd_without_args(cmd, args) do
+    if defined? @task
+      if @task.attachment != "无"
+        file_name = @task.attachment_name
+        File.open(file_name, "w") { |f| f.puts @user.clnt.get_content(@task.attachment) }
+        print "<#{file_name}> saved in \033[35m#{Dir.getwd}\033[0m\n"
+      else
+        print "\033[33m[!]\033[0m No attachment in this task\n"
+      end
+    else
+      MUST_SPECIFY.call("task")
+    end
+  end
+end
+
 def set_course(value)
   if (value =~ /^(\d+)$/) == 0
     if @user.courses.length > value.to_i
@@ -137,6 +165,25 @@ def set_course(value)
       EMPTY_SHOULD_EXEC.call("Course", "courses")
     else
       VALUE_OUT_OF_RANGE.call
+    end
+  else
+    ONLY_NUMBER_ACCEPTABLE.call
+  end
+end
+
+def set_task(value)
+  if (value =~ /^(\d+)$/) == 0
+    begin
+      if @course.tasks.length > value.to_i
+        @task = @course.tasks[value.to_i]
+        print "task => #{@task.title}\n"
+      elsif @course.tasks.empty?
+        EMPTY_SHOULD_EXEC.call("Task", "tasks")
+      else
+        VALUE_OUT_OF_RANGE.call
+      end
+    rescue NoMethodError
+      MUST_SPECIFY.call("course")
     end
   else
     ONLY_NUMBER_ACCEPTABLE.call

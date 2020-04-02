@@ -1,6 +1,6 @@
 class Task
 
-  attr_reader :title, :pubtime, :deadline, :judgement, :content, :issuer, :submit, :attachment
+  attr_reader :title, :pubtime, :deadline, :judgement, :content, :issuer, :submit, :attachment, :attachment_name
 
   def initialize(clnt, title, deadline, issuer, url, status)
     @title = title
@@ -17,6 +17,7 @@ class Task
     doc = Nokogiri::HTML(doc.css(".text > input").attr("value").value.gsub(/&nbsp;/, " "))
     @content = doc.text.strip.squeeze(" ").chars.each_slice(50).to_a.map { |x| x.join + "\n" }.join
     @attachment = doc.attr("href") ? "http://jxpt.ahu.edu.cn#{doc.attr("href").value}" : "无"
+    @attachment_name = doc.attr("title").value if @attachment != "无"
   end
 
   def finished?

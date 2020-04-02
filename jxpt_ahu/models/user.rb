@@ -5,7 +5,7 @@ class User
 
   require_relative 'course'
 
-  attr_reader :name, :courses
+  attr_reader :name, :courses, :clnt
 
   def initialize(options={})
     @username = options[:username]

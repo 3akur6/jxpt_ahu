@@ -37,8 +37,10 @@ if @user.login
     when /^(course)(.*)$/    then cmd_course($1, $2)
     when /^(informs)(.*)$/   then cmd_informs($1, $2)
     when /^(tasks)(.*)$/     then cmd_tasks($1, $2)
+    when /^(task)(.*)$/      then cmd_task($1, $2)
     when /^(set)(.*)$/       then cmd_set($1, $2)
     when /^(show|info)(.*)$/ then cmd_show($1, $2)
+    when /^(get)(.*)$/       then cmd_get($1, $2)
     else UNKNOWN_COMMAND.call(cmd)
     end
   end
