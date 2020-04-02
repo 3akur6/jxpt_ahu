@@ -146,8 +146,12 @@ def cmd_get(cmd, args)
     if defined? @task
       if @task.attachment != "无"
         file_name = @task.attachment_name
-        File.open(file_name, "w") { |f| f.puts @user.clnt.get_content(@task.attachment) }
-        print "<#{file_name}> saved in \033[35m#{Dir.getwd}\033[0m\n"
+        if !File.exist? file_name
+          File.open(file_name, "w") { |f| f.puts @user.clnt.get_content(@task.attachment) }
+          print "\033[35m#{file_name}\033[0m saved in \033[35m#{Dir.getwd}\033[0m\n"
+        else
+          print "\033[35m#{file_name}\033[0m already exist\n"
+        end
       else
         print "\033[33m[!]\033[0m No attachment in this task\n"
       end

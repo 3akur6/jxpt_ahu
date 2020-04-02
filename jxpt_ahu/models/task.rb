@@ -16,8 +16,8 @@ class Task
     @title, @pubtime, @deadline, @judgement = doc.css(".infotable > tr > td").map { |x| x.text.gsub(/\n/, " ").strip.squeeze(" ") }
     doc = Nokogiri::HTML(doc.css(".text > input").attr("value").value.gsub(/&nbsp;/, " "))
     @content = doc.text.strip.squeeze(" ").chars.each_slice(50).to_a.map { |x| x.join + "\n" }.join
-    @attachment = doc.attr("href") ? "http://jxpt.ahu.edu.cn#{doc.attr("href").value}" : "无"
-    @attachment_name = doc.attr("title").value if @attachment != "无"
+    @attachment = doc.css("a").attr("href") ? "http://jxpt.ahu.edu.cn#{doc.css("a").attr("href").value}" : "无"
+    @attachment_name = doc.css("a").attr("title").value if @attachment != "无"
   end
 
   def finished?
