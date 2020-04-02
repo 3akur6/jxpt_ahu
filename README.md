@@ -17,7 +17,7 @@ type `help` to access commands description
 ### For example:
 
 >`cmd > courses`   
-\#\# output here (courses that have some tasks unfinished)   
+\#\# output here (courses that have some unfinished tasks)   
 `cmd > set course [id]`  
 course => \[course name\] (specify a course for further operations)   
 `cmd > tasks`   
