@@ -96,8 +96,8 @@ end
 
 def cmd_task(cmd, args)
   cmd_without_args(cmd, args) do
-    if @space[@space[:user]].has_key? :task
-      print "#{@space[@space[:user]][:task].title}\n"
+    if @space[@space[@space[:user]][:course]].has_key? :task
+      print "#{@space[@space[@space[:user]][:course]][:task].title}\n"
     else
       MUST_SPECIFY.call("task")
     end
@@ -139,11 +139,11 @@ end
 
 def cmd_get(cmd, args)
   cmd_without_args(cmd, args) do
-    if @space[@space[:user]].has_key? :task
-      if @space[@space[:user]][:task].attachment != "无"
-        file_name = @space[@space[:user]][:task].attachment_name
+    if @space[@space[@space[:user]][:course]].has_key? :task
+      if @space[@space[@space[:user]][:course]][:task].attachment != "无"
+        file_name = @space[@space[@space[:user]][:course]][:task].attachment_name
         if !File.exist? file_name
-          File.open(file_name, "w") { |f| f.puts @space[:user].clnt.get_content(@user[:task].attachment) }
+          File.open(file_name, "w") { |f| f.puts @space[:user].clnt.get_content(@space[@space[@space[:user]][:course]][:task].attachment) }
           print "\033[35m#{file_name}\033[0m saved in \033[35m#{Dir.getwd}\033[0m\n"
         else
           print "\033[35m#{file_name}\033[0m already exist\n"

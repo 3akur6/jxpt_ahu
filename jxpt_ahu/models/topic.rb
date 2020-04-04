@@ -11,7 +11,7 @@ class Topic
     @clnt.get_content(url)
     res = @clnt.get_content(@url)
     doc = Nokogiri::HTML(res)
-    if doc.css("title") != "错误"
+    if !doc.css("title").text.include? "错误"
       @pubtime = doc.css(".infotable tr:nth-child(2) .con_left > li:nth-child(2) > span").text.scan(/Posted:(.*)/)[0][0]
       @title, @issuer = doc.css("table.form tr:nth-child(1) > td").text.scan(/话题：(.*).*?作者：(.*)/)[0].map(&:strip)
       @description = Nokogiri::HTML(doc.css(".infotable > tr:nth-child(2) .content > input").attr("value").value.gsub(/&nbsp;/, "")).text.strip.squeeze(" ").chars.each_slice(50).to_a.map { |x| x.join + "\n" }.join

@@ -13,7 +13,7 @@ option_parser = OptionParser.new do |opts|
 
   opts.on("-u", "--username USERNAME") { |username| options[:username] = username }
   opts.on("-p", "--password PASSWORD") { |password| options[:password] = password }
-  opts.on("-h", "--help") { puts opts;exit }
+  opts.on("-h", "--help") { puts opts; exit }
 end
 
 option_parser.parse!
