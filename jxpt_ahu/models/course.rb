@@ -3,11 +3,11 @@ class Course
   require_relative 'task'
   require_relative 'inform'
 
-  attr_reader :name
+  attr_reader :id, :name
 
-  def initialize(course_id, name, clnt)
-    @id = course_id
-    @name = name
+  def initialize(clnt, options={})
+    @id = options[:lid]
+    @name = options[:name]
     @clnt = clnt
     @tasks = []
     @informs = []
@@ -22,7 +22,8 @@ class Course
     @informs = doc.css(".body2 > ul li").map do |x|
       title = x.text.strip
       url = x.css("a:nth-child(2)").attr("href").value
-      Inform.new(@clnt, title, url)
+      issuer = x.css("span").text
+      Inform.new(@clnt, :title => title, :url => url, :lid => @id, :issuer => issuer)
     end
   end
 
@@ -38,9 +39,9 @@ class Course
       title = x.css("td:nth-child(1) > a:nth-child(1)").text.strip
       deadline = x.css("td:nth-child(2)").text
       issuer = x.css("td:nth-child(4)").text.strip
-      url = x.css("td:nth-child(1) > a:nth-child(1)").attr("href").value
+      id = x.css("td:nth-child(1) > a:nth-child(1)").attr("href").value.split("=")[-1]
       status = x.css(".enter").empty? ? true : false
-      memo << Task.new(@clnt, title, deadline, issuer, url, status)
+      memo << Task.new(@clnt, :title => title, :deadline => deadline, :issuer => issuer, :id => id, :status => status)
     end
   end
 end

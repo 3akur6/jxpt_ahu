@@ -23,9 +23,10 @@ if options.length != 2
   exit
 end
 
-@user = User.new(options)
+user = User.new(options)
+@space = { :user => user }
 
-if @user.login
+if @space[:user].login
   print BANNER
   loop do
   	cmd = Readline.readline(PROMPT, true).strip

@@ -1,14 +1,8 @@
 require 'terminal-table'
 
-TOO_MANY_ARGUMENT = Proc.new { print "\033[31m[-]\033[0m Too many arguments (expected 0)\n" }
-UNKNOWN_COMMAND = Proc.new { |cmd| print "\033[31m[-]\033[0m Unknown command: #{cmd}\n\nType \033[34mhelp\033[0m to see commands acceptable\n\n" }
-DID_YOU_MEAN = Proc.new { |cmd| print "Did you mean? \033[1m#{cmd}\033[0m\n"}
-MUST_SPECIFY = Proc.new { |item| print "\033[33m[!]\033[0m You must specify a #{item}\n" }
-USAGE_FOR_MULTI = Proc.new { |cmd| print "\nUsage: \033[34m#{cmd}\033[0m option value\n\n" }
-UNKNOWN_OPTION = Proc.new { |option| print "\033[31m[-]\033[0m Unknown option: #{option}\n" }
-VALUE_OUT_OF_RANGE = Proc.new { print "\033[31m[-]\033[0m Wrong assignment (value out of length)\n" }
-EMPTY_SHOULD_EXEC = Proc.new { |arr, cmd| print "\033[33m[!]\033[0m #{arr} list empty\n"; print "\nYou should exec \033[34m#{cmd}\033[0m firstly\n\n" }
-ONLY_NUMBER_ACCEPTABLE = Proc.new { print "\033[33m[!]\033[0m Only number larger than or equal to 0 acceptable\n" }
+require_relative '../module/jxpt_ahu'
+
+include JxptAhu
 
 def cmd_without_args(cmd, rest, &block)
   if rest.empty?
@@ -66,13 +60,13 @@ def cmd_help(cmd, args)
 end
 
 def cmd_user(cmd, args)
-  cmd_without_args(cmd, args) { print @user.name, "\n" }
+  cmd_without_args(cmd, args) { print @space[:user].name, "\n" }
 end
 
 def cmd_course(cmd, args)
   cmd_without_args(cmd, args) do
-    if defined? @course
-      print "#{@course.name}\n"
+    if @space[@space[:user]].has_key? :course
+      print "#{@space[@space[:user]][:course].name}\n"
     else
       MUST_SPECIFY.call("course")
     end
@@ -81,7 +75,7 @@ end
 
 def cmd_courses(cmd, args)
   cmd_without_args(cmd, args) do
-    recv = @user.courses.empty? ? @user.homework : @user.courses
+    recv = @space[:user].courses.empty? ? @space[:user].homework : @space[:user].courses
     table = Terminal::Table.new title: "Courses", headings: %w(Id Name)
     recv.map.with_index { |x, idx| [idx, x.name] }.inject([], :<<).each { |row| table << row }
     puts table
@@ -90,9 +84,9 @@ end
 
 def cmd_tasks(cmd, args)
   cmd_without_args(cmd, args) do
-    if defined? @course
+    if @space[@space[:user]].respond_to?(:has_key?) && @space[@space[:user]].has_key?(:course)
       table = Terminal::Table.new title: "Tasks", headings: %w(Id Name Deadline Finished)
-      @course.tasks.map.with_index { |x, idx| [idx, x.title, x.deadline, x.finished?.to_s] }.inject([], :<<).each { |row| table << row }
+      @space[@space[:user]][:course].tasks.map.with_index { |x, idx| [idx, x.title, x.deadline, x.finished?.to_s] }.inject([], :<<).each { |row| table << row }
       puts table
     else
       MUST_SPECIFY.call("course")
@@ -102,8 +96,8 @@ end
 
 def cmd_task(cmd, args)
   cmd_without_args(cmd, args) do
-    if defined? @task
-      print "#{@task.title}\n"
+    if @space[@space[:user]].has_key? :task
+      print "#{@space[@space[:user]][:task].title}\n"
     else
       MUST_SPECIFY.call("task")
     end
@@ -112,9 +106,10 @@ end
 
 def cmd_informs(cmd, args)
   cmd_without_args(cmd, args) do
-    if defined? @course
+    @space[@space[:user]] = {} if !@space[@space[:user]].is_a? Hash
+    if @space[@space[:user]].has_key? :course
       table = Terminal::Table.new title: "Informs", headings: %w(Id Name)
-      @course.informs.map.with_index { |x, idx| [idx, x.title] }.inject([], :<<).each { |row| table << row }
+      @space[@space[:user]][:course].informs.map.with_index { |x, idx| [idx, x.title] }.inject([], :<<).each { |row| table << row }
       puts table
     else
       MUST_SPECIFY.call("course")
@@ -136,6 +131,7 @@ def cmd_show(cmd, args)
   cmd_with_args(cmd, args) do |option, value|
     case option
     when "task" then show_task(value)
+    when "inform" then show_inform(value)
     else UNKNOWN_OPTION.call(option)
     end
   end
@@ -143,11 +139,11 @@ end
 
 def cmd_get(cmd, args)
   cmd_without_args(cmd, args) do
-    if defined? @task
-      if @task.attachment != "无"
-        file_name = @task.attachment_name
+    if @space[@space[:user]].has_key? :task
+      if @space[@space[:user]][:task].attachment != "无"
+        file_name = @space[@space[:user]][:task].attachment_name
         if !File.exist? file_name
-          File.open(file_name, "w") { |f| f.puts @user.clnt.get_content(@task.attachment) }
+          File.open(file_name, "w") { |f| f.puts @space[:user].clnt.get_content(@user[:task].attachment) }
           print "\033[35m#{file_name}\033[0m saved in \033[35m#{Dir.getwd}\033[0m\n"
         else
           print "\033[35m#{file_name}\033[0m already exist\n"
@@ -163,10 +159,11 @@ end
 
 def set_course(value)
   if (value =~ /^(\d+)$/) == 0
-    if @user.courses.length > value.to_i
-      @course = @user.courses[value.to_i]
-      print "course => #{@course.name}\n"
-    elsif @user.courses.empty?
+    if @space[:user].courses.length > value.to_i
+      @space[@space[:user]] = {} if !@space[@space[:user]].is_a? Hash
+      @space[@space[:user]][:course] = @space[:user].courses[value.to_i]
+      print "course => #{@space[@space[:user]][:course].name}\n"
+    elsif @space[:user].courses.empty?
       EMPTY_SHOULD_EXEC.call("Course", "courses")
     else
       VALUE_OUT_OF_RANGE.call
@@ -178,16 +175,17 @@ end
 
 def set_task(value)
   if (value =~ /^(\d+)$/) == 0
-    begin
-      if @course.tasks.length > value.to_i
-        @task = @course.tasks[value.to_i]
-        print "task => #{@task.title}\n"
-      elsif @course.tasks.empty?
+    if @space[@space[:user]][:course].respond_to? :tasks
+      if @space[@space[:user]][:course].tasks.length > value.to_i
+        @space[@space[@space[:user]][:course]] = {} if !@space[@space[@space[:user]][:course]].is_a? Hash
+        @space[@space[@space[:user]][:course]][:task] = @space[@space[:user]][:course].tasks[value.to_i]
+        print "task => #{@space[@space[@space[:user]][:course]][:task].title}\n"
+      elsif @space[@space[:user]][:course].tasks.empty?
         EMPTY_SHOULD_EXEC.call("Task", "tasks")
       else
         VALUE_OUT_OF_RANGE.call
       end
-    rescue NoMethodError
+    else
       MUST_SPECIFY.call("course")
     end
   else
@@ -197,27 +195,36 @@ end
 
 def show_task(value)
   if (value =~ /^(\d+)$/) == 0
-    begin
-      if @course.tasks.length > value.to_i
-        task = @course.tasks[value.to_i]
-        table = Terminal::Table.new do |t|
-          t.title = "Task"
-          t.add_row ["标题", task.title]
-          t.add_row ["链接", task.submit]
-          t.add_row ["发布人", task.issuer]
-          t.add_row ["发布时间", task.pubtime]
-          t.add_row ["截止时间", task.deadline]
-          t.add_row ["评分方式", task.judgement]
-          t.add_row ["作业内容", task.content]
-          t.add_row ["附件", task.attachment]
-          t.style = { :all_separators => true }
-        end
+    if @space[@space[:user]][:course].respond_to? :tasks
+      if @space[@space[:user]][:course].tasks.length > value.to_i
+        task = @space[@space[:user]][:course].tasks[value.to_i]
+        table = task.table
         puts table
       else
         VALUE_OUT_OF_RANGE.call
       end
-    rescue NoMethodError
+    else
       EMPTY_SHOULD_EXEC.call("Task", "tasks")
+    end
+  else
+    ONLY_NUMBER_ACCEPTABLE.call
+  end
+end
+
+def show_inform(value)
+  if (value =~ /^(\d+)$/) == 0
+    if @space[@space[:user]][:course].respond_to? :informs
+      if @space[@space[:user]][:course].informs.length > value.to_i
+        @space[@space[@space[:user]][:course]] = {} if !@space[@space[@space[:user]][:course]].is_a? Hash
+        @space[@space[@space[:user]][:course]][:informs] = @space[@space[:user]][:course].informs.map(&:detail) if !@space[@space[@space[:user]][:course]].has_key? :informs
+        inform = @space[@space[@space[:user]][:course]][:informs][value.to_i]
+        table = inform.table
+        puts table
+      else
+        VALUE_OUT_OF_RANGE.call
+      end
+    else
+      EMPTY_SHOULD_EXEC.call("Inform", "informs")
     end
   else
     ONLY_NUMBER_ACCEPTABLE.call

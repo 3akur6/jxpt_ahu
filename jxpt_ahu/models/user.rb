@@ -26,11 +26,10 @@ class User
   def homework
     res = @clnt.get_content("http://jxpt.ahu.edu.cn/meol/welcomepage/student/interaction_reminder_v8.jsp")
     doc = Nokogiri::HTML(res)
-    reminder = doc.css("#reminder > li:nth-child(2) > a:nth-child(1)").text
-    @courses = doc.css("#reminder > li:nth-child(2) > ul:nth-child(2) a").reduce([]) do |memo, x|
+    @courses = doc.css("#reminder > li").select { |x| x.css("a[title=点击查看]").text.include? "待提交作业" }[0].css("ul a").reduce([]) do |memo, x|
       id = x.attr("onclick").scan(/\d+/)[0]
       name = x.text.strip
-      memo << Course.new(id, name, @clnt)
+      memo << Course.new(@clnt, :lid => id, :name => name)
     end
   end
 end
