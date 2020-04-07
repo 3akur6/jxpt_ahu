@@ -19,12 +19,17 @@ class Course
     params = { :courseId => @id }
     res = @clnt.get_content(url, params)
     doc = Nokogiri::HTML(res)
-    @informs = doc.css(".body2 > ul li").map do |x|
-      title = x.text.strip
-      url = x.css("a:nth-child(2)").attr("href").value
-      issuer = x.css("span").text
-      Inform.new(@clnt, :title => title, :url => url, :lid => @id, :issuer => issuer)
+    threads = []
+    doc.css(".body2 > ul li").each do |x|
+      threads << Thread.new do
+        title = x.text.strip
+        url = x.css("a:nth-child(2)").attr("href").value
+        issuer = x.css("span").text
+        @informs << Inform.new(@clnt, :title => title, :url => url, :lid => @id, :issuer => issuer)
+      end
     end
+    threads.each(&:join)
+    @informs
   end
 
   def tasks
@@ -35,13 +40,18 @@ class Course
     url = "http://jxpt.ahu.edu.cn/meol/common/hw/student/hwtask.jsp"
     res = @clnt.get_content(url)
     doc = Nokogiri::HTML(res)
-    @tasks = doc.css(".valuelist > tr").drop(1).reduce([]) do |memo, x|
-      title = x.css("td:nth-child(1) > a:nth-child(1)").text.strip
-      deadline = x.css("td:nth-child(2)").text
-      issuer = x.css("td:nth-child(4)").text.strip
-      id = x.css("td:nth-child(1) > a:nth-child(1)").attr("href").value.split("=")[-1]
-      status = x.css(".enter").empty? ? true : false
-      memo << Task.new(@clnt, :title => title, :deadline => deadline, :issuer => issuer, :id => id, :status => status)
+    threads = []
+    doc.css(".valuelist > tr").drop(1).each do |x|
+      threads << Thread.new do
+        title = x.css("td:nth-child(1) > a:nth-child(1)").text.strip
+        deadline = x.css("td:nth-child(2)").text
+        issuer = x.css("td:nth-child(4)").text.strip
+        id = x.css("td:nth-child(1) > a:nth-child(1)").attr("href").value.split("=")[-1]
+        status = x.css(".enter").empty? ? true : false
+        @tasks << Task.new(@clnt, :title => title, :deadline => deadline, :issuer => issuer, :id => id, :status => status)
+      end
     end
+    threads.each(&:join)
+    @tasks
   end
 end
