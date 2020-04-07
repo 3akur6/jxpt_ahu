@@ -1,5 +1,7 @@
 class Course
 
+  require 'date'
+
   require_relative 'task'
   require_relative 'inform'
 
@@ -20,16 +22,16 @@ class Course
     res = @clnt.get_content(url, params)
     doc = Nokogiri::HTML(res)
     threads = []
-    doc.css(".body2 > ul li").each do |x|
+    doc.css(".body2 > ul li").each_with_index do |x, idx|
       threads << Thread.new do
         title = x.text.strip
         url = x.css("a:nth-child(2)").attr("href").value
         issuer = x.css("span").text
-        @informs << Inform.new(@clnt, :title => title, :url => url, :lid => @id, :issuer => issuer)
+        @informs << Inform.new(@clnt, :title => title, :url => url, :lid => @id, :issuer => issuer, :order => idx)
       end
     end
     threads.each(&:join)
-    @informs
+    @informs.sort_by! { |i| i.order }
   end
 
   def tasks
@@ -52,6 +54,6 @@ class Course
       end
     end
     threads.each(&:join)
-    @tasks
+    @tasks.sort_by { |t| Date.parse(t.deadline.gsub(/[年月]/, "-").gsub(/日/, "")) }.reverse!
   end
 end

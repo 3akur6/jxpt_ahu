@@ -54,7 +54,7 @@ def cmd_help(cmd, args)
       :tasks   => "Get tasks in present course",
       :user    => "Show current user"
     }
-    info.inject([], :<<).each { |row| table << row }
+    info.each { |row| table << row }
     puts table
   end
 end
@@ -65,7 +65,7 @@ end
 
 def cmd_course(cmd, args)
   cmd_without_args(cmd, args) do
-    if @space[@space[:user]].has_key? :course
+    if @space[@space[:user]].respond_to?(:has_key) && @space[@space[:user]].has_key?(:course)
       print "#{@space[@space[:user]][:course].name}\n"
     else
       MUST_SPECIFY.call("course")
@@ -139,7 +139,7 @@ end
 
 def cmd_get(cmd, args)
   cmd_without_args(cmd, args) do
-    if @space[@space[@space[:user]][:course]].has_key? :task
+    begin
       if @space[@space[@space[:user]][:course]][:task].attachment != "无"
         file_name = @space[@space[@space[:user]][:course]][:task].attachment_name
         if !File.exist? file_name
@@ -151,7 +151,7 @@ def cmd_get(cmd, args)
       else
         print "\033[33m[!]\033[0m No attachment in this task\n"
       end
-    else
+    rescue NoMethodError
       MUST_SPECIFY.call("task")
     end
   end

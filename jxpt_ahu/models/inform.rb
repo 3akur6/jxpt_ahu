@@ -4,13 +4,14 @@ class Inform
   require_relative "topic"
   require_relative "task"
 
-  attr_reader :title
+  attr_reader :title, :order
 
   def initialize(clnt, options={})
     @clnt = clnt
     @title = options[:title]
     @lid = options[:lid]
     @issuer = options[:issuer]
+    @order = options[:order]
     *desert, type, id = options[:url].split(/[\/?]/)
     case type
     when "message_content.jsp"
