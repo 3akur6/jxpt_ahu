@@ -26,7 +26,7 @@ class Course
       threads << Thread.new do
         title = x.text.strip
         url = x.css("a:nth-child(2)").attr("href").value
-        issuer = x.css("span").text
+        issuer = x.css("a:nth-child(1) > span").text
         @informs << Inform.new(@clnt, :title => title, :url => url, :lid => @id, :issuer => issuer, :order => idx)
       end
     end
