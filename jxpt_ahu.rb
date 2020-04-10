@@ -26,23 +26,32 @@ end
 user = User.new(options)
 @space = { :user => user }
 
-if @space[:user].login
-  print BANNER
-  loop do
-  	cmd = Readline.readline(PROMPT, true).strip
-    case cmd
-    when /^(help)(.*)$/      then cmd_help($1, $2)
-    when /^(exit|quit)(.*)$/ then cmd_exit($1, $2)
-    when /^(user)(.*)$/      then cmd_user($1, $2)
-    when /^(courses)(.*)$/   then cmd_courses($1, $2)
-    when /^(course)(.*)$/    then cmd_course($1, $2)
-    when /^(informs)(.*)$/   then cmd_informs($1, $2)
-    when /^(tasks)(.*)$/     then cmd_tasks($1, $2)
-    when /^(task)(.*)$/      then cmd_task($1, $2)
-    when /^(set)(.*)$/       then cmd_set($1, $2)
-    when /^(show|info)(.*)$/ then cmd_show($1, $2)
-    when /^(get)(.*)$/       then cmd_get($1, $2)
-    else UNKNOWN_COMMAND.call(cmd)
+begin
+  if @space[:user].login
+    print BANNER
+    loop do
+    	cmd = Readline.readline(PROMPT, true).strip
+      case cmd
+      when /^(help)(.*)$/      then cmd_help($1, $2)
+      when /^(exit|quit)(.*)$/ then cmd_exit($1, $2)
+      when /^(user)(.*)$/      then cmd_user($1, $2)
+      when /^(courses)(.*)$/   then cmd_courses($1, $2)
+      when /^(course)(.*)$/    then cmd_course($1, $2)
+      when /^(informs)(.*)$/   then cmd_informs($1, $2)
+      when /^(tasks)(.*)$/     then cmd_tasks($1, $2)
+      when /^(task)(.*)$/      then cmd_task($1, $2)
+      when /^(set)(.*)$/       then cmd_set($1, $2)
+      when /^(show|info)(.*)$/ then cmd_show($1, $2)
+      when /^(get)(.*)$/       then cmd_get($1, $2)
+      when /^(boost)(.*)$/     then cmd_boost($1, $2)
+      when /^(resources)(.*)$/      then cmd_resources($1, $2)
+      else UNKNOWN_COMMAND.call(cmd)
+      end
     end
+  else
+    print "Login error. You should check your spelling or something.\n"
   end
+rescue Interrupt
+  print "\n\nExit.\n\n"
+  exit
 end

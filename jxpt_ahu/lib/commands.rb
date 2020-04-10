@@ -6,7 +6,14 @@ include JxptAhu
 
 def cmd_without_args(cmd, rest, &block)
   if rest.empty?
-    block.call
+    tries = 0
+    begin
+      block.call
+    rescue HTTPClient::ConnectTimeoutError
+      sleep(2 ** tries)
+      tries += 1
+      retry
+    end
   elsif rest.start_with? " "
     TOO_MANY_ARGUMENT.call
   else
@@ -22,7 +29,14 @@ def cmd_with_args(cmd, rest, &block)
     args = rest.split(" ")
     if args.length == 2
       option, value = args
-      block.call(option, value)
+      tries = 0
+      begin
+        block.call(option, value)
+      rescue HTTPClient::ConnectTimeoutError
+        sleep(2 ** tries)
+        tries += 1
+        retry
+      end
     else
       USAGE_FOR_MULTI.call(cmd)
     end
@@ -40,19 +54,20 @@ def cmd_help(cmd, args)
   cmd_without_args(cmd,args) do
     table = Terminal::Table.new headings: %w(Command Description)
     info = {
-      :course  => "Get present course assigned before",
-      :courses => "Show current user's courses which have unfinished tasks",
-      :exit    => "Exit the console",
-      :get     => "get attachment included in specified task",
-      :help    => "Help menu",
-      :info    => "Display detailed infomation",
-      :informs => "Display the newest informs of present course",
-      :quit    => "Alias for exit",
-      :set     => "Set a global variable to a value",
-      :show    => "Alias for info",
-      :task    => "Get present task",
-      :tasks   => "Get tasks in present course",
-      :user    => "Show current user"
+      :course    => "Get present course assigned before",
+      :courses   => "Show current user's courses",
+      :exit      => "Exit the console",
+      :get       => "get attachment included in specified task",
+      :help      => "Help menu",
+      :info      => "Display detailed infomation",
+      :informs   => "Display the newest informs of present course",
+      :quit      => "Alias for exit",
+      :resources => "Show resources in given course",
+      :set       => "Set a global variable to a value",
+      :show      => "Alias for info",
+      :task      => "Get present task",
+      :tasks     => "Get tasks in present course",
+      :user      => "Show current user"
     }
     info.each { |row| table << row }
     puts table
@@ -65,7 +80,7 @@ end
 
 def cmd_course(cmd, args)
   cmd_without_args(cmd, args) do
-    if @space[@space[:user]].respond_to?(:has_key) && @space[@space[:user]].has_key?(:course)
+    if @space.dig(@space[:user], :course)
       print "#{@space[@space[:user]][:course].name}\n"
     else
       MUST_SPECIFY.call("course")
@@ -75,9 +90,10 @@ end
 
 def cmd_courses(cmd, args)
   cmd_without_args(cmd, args) do
-    recv = @space[:user].courses.empty? ? @space[:user].homework : @space[:user].courses
-    table = Terminal::Table.new title: "Courses", headings: %w(Id Name)
-    recv.map.with_index { |x, idx| [idx, x.name] }.inject([], :<<).each { |row| table << row }
+    table = Terminal::Table.new title: "Courses", headings: %w(Id Name Tasks Resources)
+    @space[:user].courses.map
+                         .with_index { |x, idx| [idx, x.name, @space[:user].homework.include?(x) ? "✔" : "", x.resources? ? "✔" : ""] }
+                         .inject([], :<<).each { |row| table << row }
     puts table
   end
 end
@@ -157,6 +173,37 @@ def cmd_get(cmd, args)
   end
 end
 
+def cmd_boost(cmd, args)
+  cmd_without_args(cmd, args) do
+    if course = @space.dig(@space[:user], :course).dup
+      
+    end
+  end
+end
+
+def cmd_resources(cmd, args)
+  cmd_without_args(cmd, args) do
+    if course = @space.dig(@space[:user], :course).dup
+      table = Terminal::Table.new do |t|
+        t.add_row ["Chapters", "Resources"]
+        course.chapters.each do |c|
+          t.add_row [
+            "#{c.to_s}\n\n\n" + c.subtitles.inject("") { |smemo, s| smemo << "#{s.to_s}\n\n" + (s.sections.empty? ? "" : (s.sections.map(&:to_s).join("\n") + "\n\n")) },
+            c.subtitles
+             .inject("") { |smemo, s| smemo << (s.resources.empty? ? "" : "#{s.resources.map(&:to_s).join("\n")}\n") + 
+                                               (s.sections.empty? ? "" : s.sections.inject("") { |scmemo, sc| scmemo << sc.resources.map(&:to_s).join("\n") + "\n" }) }
+             .strip
+          ]
+        end
+        t.style = { :all_separators => true }
+      end
+      puts table
+    else
+      MUST_SPECIFY.call("course")
+    end
+  end
+end
+
 def set_course(value)
   if (value =~ /^(\d+)$/) == 0
     if @space[:user].courses.length > value.to_i
@@ -216,7 +263,16 @@ def show_inform(value)
     if @space[@space[:user]][:course].respond_to? :informs
       if @space[@space[:user]][:course].informs.length > value.to_i
         @space[@space[@space[:user]][:course]] = {} if !@space[@space[@space[:user]][:course]].is_a? Hash
-        @space[@space[@space[:user]][:course]][:informs] = @space[@space[:user]][:course].informs.map(&:detail) if !@space[@space[@space[:user]][:course]].has_key? :informs
+        if !@space[@space[@space[:user]][:course]].has_key? :informs
+          @space[@space[@space[:user]][:course]][:informs] = []
+          threads = []
+          @space[@space[:user]][:course].informs.each_with_index do |i, idx|
+            threads << Thread.new do
+              @space[@space[@space[:user]][:course]][:informs][idx] = i.detail
+            end
+          end
+          threads.each(&:join)
+        end
         inform = @space[@space[@space[:user]][:course]][:informs][value.to_i]
         table = inform.table
         puts table
