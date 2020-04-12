@@ -21,18 +21,18 @@ class OnlinePreview
     end
   end
 
-  def boost(minute=1)
-    time = 60 * minute
+  def boost
+    time = 60 # range: 0 - 119 (=~ 1min)
     url = "http://jxpt.ahu.edu.cn/meol/common/script/addscriptviewtime.jsp"
     data = { :lessonId => @lid, :resid => @id, :onlinetime => time }
     res = @clnt.post_content(url, data)
-    @time = res
+    @time = res.strip.to_i
   end
 
   def time(type=:min)
     @time ||= @start_time * 60
     case type
-    when :min then @time % 60
+    when :min then @time / 60
     when :sec then @time
     end
   end

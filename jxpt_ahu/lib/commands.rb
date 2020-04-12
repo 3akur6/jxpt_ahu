@@ -9,7 +9,7 @@ def cmd_without_args(cmd, rest, &block)
     tries = 0
     begin
       block.call
-    rescue HTTPClient::ConnectTimeoutError
+    rescue HTTPClient::TimeoutError
       sleep(2 ** tries)
       tries += 1
       retry
@@ -22,17 +22,17 @@ def cmd_without_args(cmd, rest, &block)
   end
 end
 
-def cmd_with_args(cmd, rest, &block)
+def cmd_with_args(cmd, rest, expect=2, &block)
   if rest.empty?
     USAGE_FOR_MULTI.call(cmd)
   elsif rest.start_with? " "
     args = rest.split(" ")
-    if args.length >= 2
+    if args.length == expect
       option, *value = args
       tries = 0
       begin
         block.call(option, value)
-      rescue HTTPClient::ConnectTimeoutError
+      rescue HTTPClient::TimeoutError
         sleep(2 ** tries)
         tries += 1
         retry
@@ -148,8 +148,8 @@ end
 def cmd_show(cmd, args)
   cmd_with_args(cmd, args) do |option, value|
     case option
-    when "task" then show_task(value)
-    when "inform" then show_inform(value)
+    when "task" then show_task(value[0])
+    when "inform" then show_inform(value[0])
     else UNKNOWN_OPTION.call(option)
     end
   end
@@ -176,12 +176,12 @@ def cmd_get(cmd, args)
 end
 
 def cmd_boost(cmd, args)
-  cmd_with_args(cmd, args) do |value, desert|
+  cmd_with_args(cmd, args, 1) do |value, desert|
     if (value =~ /^(\d+)$/) == 0
-      @space[@space[@space[:user]]][:course][:payload].boost(value.to_i)
-      now = @space[@space[@space[:user]]][:course][:payload].time :sec
-      before = now - value * 60
-      puts "\033[32m[+]\033[0m from: #{before % 60} (sec: #{before}) to: #{now % 60} (sec: #{now})"
+      value.to_i.times { @space[@space[@space[:user]][:course]][:payload].boost }
+      now = @space[@space[@space[:user]][:course]][:payload].time :sec
+      before = now - value.to_i * 60
+      puts "\033[32m[+]\033[0m from: #{before / 60} (sec: #{before}) to: #{now / 60} (sec: #{now})"
     end
   end
 end

@@ -20,7 +20,9 @@ type `help` to access commands description
 * get tasks in more detail, such as pubtime, deadline, submit link, attachment
 * easily download attachments (just type get since you set task)
 * have a glance at the announcement from teacher
-* involve in course topics (only see teachers in fact >\_<|||) 
+* involve in course topics (only see teachers in fact >\_<|||)
+* query online resources' visit times and learning time
+* use `boost` to add some time to online resources (Tips: remember to give a reasonable time)
 
 ### For example:
 
