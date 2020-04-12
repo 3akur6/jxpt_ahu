@@ -27,8 +27,8 @@ def cmd_with_args(cmd, rest, &block)
     USAGE_FOR_MULTI.call(cmd)
   elsif rest.start_with? " "
     args = rest.split(" ")
-    if args.length == 2
-      option, value = args
+    if args.length >= 2
+      option, *value = args
       tries = 0
       begin
         block.call(option, value)
@@ -136,8 +136,10 @@ end
 def cmd_set(cmd, args)
   cmd_with_args(cmd, args) do |option, value|
     case option
-    when "course" then set_course(value)
-    when "task"   then set_task(value)
+    when "course"   then set_course(value[0])
+    when "task"     then set_task(value[0])
+    when "payload"  then set_payload(value[0])
+    when "payloads" then set_payloads(value)
     else UNKNOWN_OPTION.call(option)
     end
   end
@@ -174,9 +176,12 @@ def cmd_get(cmd, args)
 end
 
 def cmd_boost(cmd, args)
-  cmd_without_args(cmd, args) do
-    if course = @space.dig(@space[:user], :course).dup
-      
+  cmd_with_args(cmd, args) do |value, desert|
+    if (value =~ /^(\d+)$/) == 0
+      @space[@space[@space[:user]]][:course][:payload].boost(value.to_i)
+      now = @space[@space[@space[:user]]][:course][:payload].time :sec
+      before = now - value * 60
+      puts "\033[32m[+]\033[0m from: #{before % 60} (sec: #{before}) to: #{now % 60} (sec: #{now})"
     end
   end
 end
@@ -200,6 +205,44 @@ def cmd_resources(cmd, args)
       puts table
     else
       MUST_SPECIFY.call("course")
+    end
+  end
+end
+
+def cmd_payloads(cmd, args)
+  cmd_without_args(cmd, args) do
+    @space[@space[:user]] ||= {}
+    @space[@space[:user]][:cache] ||= {}
+    cache_payloads = @space[@space[:user]][:cache][:payloads]
+    if !cache_payloads.nil?
+      puts cache_payloads
+      return
+    end
+    if course = @space.dig(@space[:user], :course)
+      table = Terminal::Table.new do |t|
+        t.title = "Payloads"
+        t.add_row %w(Id Name Visit\ Times Online\ Time)
+        threads = []
+        @space[course] ||= {}
+        @space[course][:payloads] = []
+        course.resources.select { |r| r.type == OnlinePreview }.each_with_index { |op, idx| threads << Thread.new { @space[course][:payloads][idx] = op.detail } }
+        threads.each(&:join)
+        @space[course][:payloads].each_with_index { |p, idx| t.add_row [idx, p.name, p.visit_times, p.time] }
+      end
+      @space[@space[:user]][:cache][:payloads] = table
+      puts table
+    else
+      MUST_SPECIFY.call("course")
+    end
+  end
+end
+
+def cmd_payload(cmd, args)
+  cmd_without_args(cmd, args) do
+    if @space[@space[@space[:user]][:course]].has_key? :payload
+      puts @space[@space[@space[:user]][:course]][:payload].name
+    else
+      MUST_SPECIFY.call("payload")
     end
   end
 end
@@ -237,6 +280,32 @@ def set_task(value)
     end
   else
     ONLY_NUMBER_ACCEPTABLE.call
+  end
+end
+
+def set_payload(value)
+  if (value =~ /^(\d+)$/) == 0
+    if course = @space.dig(@space[:user], :course)
+      if payloads = @space.dig(course, :payloads)
+        if payloads.length > value.to_i
+          payload = @space[@space[@space[:user]][:course]][:payload] = payloads[value.to_i]
+          print "payload => #{payload.name}\n"
+        else
+          VALUE_OUT_OF_RANGE.call
+        end
+      else
+        EMPTY_SHOULD_EXEC.call("Payload", "payloads")
+      end
+    else
+      MUST_SPECIFY.call("course")
+    end
+  else
+    ONLY_NUMBER_ACCEPTABLE.call
+  end
+end
+
+def set_payloads(value)
+  if value.all? { |x| (x =~ /^(\d+)$/) == 0 }
   end
 end
 

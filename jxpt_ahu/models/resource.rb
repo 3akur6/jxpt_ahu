@@ -3,7 +3,7 @@ class Resource
   require_relative 'online_preview'
   require_relative 'download_preview'
 
-  attr_reader :name
+  attr_reader :name, :type
 
   def initialize(clnt, options={})
     @clnt = clnt

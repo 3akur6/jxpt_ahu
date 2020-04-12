@@ -44,7 +44,9 @@ begin
       when /^(show|info)(.*)$/ then cmd_show($1, $2)
       when /^(get)(.*)$/       then cmd_get($1, $2)
       when /^(boost)(.*)$/     then cmd_boost($1, $2)
-      when /^(resources)(.*)$/      then cmd_resources($1, $2)
+      when /^(resources)(.*)$/ then cmd_resources($1, $2)
+      when /^(payloads)(.*)$/  then cmd_payloads($1, $2)
+      when /^(payload)(.*)$/   then cmd_payload($1, $2)
       else UNKNOWN_COMMAND.call(cmd)
       end
     end
