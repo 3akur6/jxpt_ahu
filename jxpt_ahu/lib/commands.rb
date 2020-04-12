@@ -54,6 +54,7 @@ def cmd_help(cmd, args)
   cmd_without_args(cmd,args) do
     table = Terminal::Table.new headings: %w(Command Description)
     info = {
+      :boost     => "Add some time to online resources",
       :course    => "Get present course assigned before",
       :courses   => "Show current user's courses",
       :exit      => "Exit the console",
@@ -61,6 +62,7 @@ def cmd_help(cmd, args)
       :help      => "Help menu",
       :info      => "Display detailed infomation",
       :informs   => "Display the newest informs of present course",
+      :payloads  => "Query resources that support boost function",
       :quit      => "Alias for exit",
       :resources => "Show resources in given course",
       :set       => "Set a global variable to a value",
