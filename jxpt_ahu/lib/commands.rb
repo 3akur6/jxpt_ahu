@@ -9,7 +9,7 @@ def cmd_without_args(cmd, rest, &block)
     tries = 0
     begin
       block.call
-    rescue HTTPClient::TimeoutError
+    rescue RuntimeError
       sleep(2 ** tries)
       tries += 1
       retry
@@ -32,7 +32,7 @@ def cmd_with_args(cmd, rest, expect=2, &block)
       tries = 0
       begin
         block.call(option, value)
-      rescue HTTPClient::TimeoutError
+      rescue RuntimeError
         sleep(2 ** tries)
         tries += 1
         retry
@@ -214,24 +214,31 @@ end
 def cmd_payloads(cmd, args)
   cmd_without_args(cmd, args) do
     @space[@space[:user]] ||= {}
-    @space[@space[:user]][:cache] ||= {}
-    cache_payloads = @space[@space[:user]][:cache][:payloads]
-    if !cache_payloads.nil?
-      puts cache_payloads
-      return
-    end
     if course = @space.dig(@space[:user], :course)
       table = Terminal::Table.new do |t|
         t.title = "Payloads"
-        t.add_row %w(Id Name Visit\ Times Online\ Time)
-        threads = []
-        @space[course] ||= {}
-        @space[course][:payloads] = []
-        course.resources.select { |r| r.type == OnlinePreview }.each_with_index { |op, idx| threads << Thread.new { @space[course][:payloads][idx] = op.detail } }
-        threads.each(&:join)
-        @space[course][:payloads].each_with_index { |p, idx| t.add_row [idx, p.name, p.visit_times, p.time] }
+        t.add_row %w(Id Name Online\ Time)
+        unless payloads = @space.dig(course, :payloads)
+          threads = []
+          @space[course] ||= {}
+          @space[course][:payloads] = []
+          course.resources.select { |r| r.type == OnlinePreview }.each_with_index do |op, idx|
+            threads << Thread.new do
+              tries = 0
+              begin
+                @space[course][:payloads][idx] = op.detail
+              rescue RuntimeError
+                sleep(2 ** tries)
+                tries += 1
+                retry
+              end
+            end
+          end
+          threads.each(&:join)
+          payloads = @space.dig(course, :payloads)
+        end
+        payloads.each_with_index { |p, idx| t.add_row [idx, p.name, p.time] }
       end
-      @space[@space[:user]][:cache][:payloads] = table
       puts table
     else
       MUST_SPECIFY.call("course")
