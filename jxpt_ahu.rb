@@ -47,7 +47,6 @@ begin
       when /^(resources)(.*)$/ then cmd_resources($1, $2)
       when /^(payloads)(.*)$/  then cmd_payloads($1, $2)
       when /^(payload)(.*)$/   then cmd_payload($1, $2)
-      when /^(flush)(.*)$/     then cmd_flush($1, $2)
       else UNKNOWN_COMMAND.call(cmd)
       end
     end

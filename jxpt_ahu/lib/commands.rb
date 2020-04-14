@@ -26,9 +26,10 @@ def cmd_with_args(cmd, rest, expect=2, &block)
   if rest.empty?
     USAGE_FOR_MULTI.call(cmd)
   elsif rest.start_with? " "
-    args = rest.split(" ")
+    args = rest.split(/[, ]/).reject { |x| x == "" }
+    args = [args[0], args.drop(1).join(",")]
     if args.length == expect
-      option, *value = args
+      option, value = args
       tries = 0
       begin
         block.call(option, value)
@@ -62,6 +63,7 @@ def cmd_help(cmd, args)
       :help      => "Help menu",
       :info      => "Display detailed infomation",
       :informs   => "Display the newest informs of present course",
+      :payload   => "Show current payload",
       :payloads  => "Query resources that support boost function",
       :quit      => "Alias for exit",
       :resources => "Show resources in given course",
@@ -102,7 +104,7 @@ end
 
 def cmd_tasks(cmd, args)
   cmd_without_args(cmd, args) do
-    if @space[@space[:user]].respond_to?(:has_key?) && @space[@space[:user]].has_key?(:course)
+    if @space.dig(@space[:user], :course)
       table = Terminal::Table.new title: "Tasks", headings: %w(Id Name Deadline Finished)
       @space[@space[:user]][:course].tasks.map.with_index { |x, idx| [idx, x.title, x.deadline, x.finished?.to_s] }.inject([], :<<).each { |row| table << row }
       puts table
@@ -114,7 +116,7 @@ end
 
 def cmd_task(cmd, args)
   cmd_without_args(cmd, args) do
-    if @space[@space[@space[:user]][:course]].has_key? :task
+    if @space.dig(@space[@space[:user]][:course], :task)
       print "#{@space[@space[@space[:user]][:course]][:task].title}\n"
     else
       MUST_SPECIFY.call("task")
@@ -124,8 +126,8 @@ end
 
 def cmd_informs(cmd, args)
   cmd_without_args(cmd, args) do
-    @space[@space[:user]] = {} if !@space[@space[:user]].is_a? Hash
-    if @space[@space[:user]].has_key? :course
+    @space[@space[:user]] ||= {}
+    if @space.dig(@space[:user], :course)
       table = Terminal::Table.new title: "Informs", headings: %w(Id Name)
       @space[@space[:user]][:course].informs.map.with_index { |x, idx| [idx, x.title] }.inject([], :<<).each { |row| table << row }
       puts table
@@ -138,9 +140,9 @@ end
 def cmd_set(cmd, args)
   cmd_with_args(cmd, args) do |option, value|
     case option
-    when "course"   then set_course(value[0])
-    when "task"     then set_task(value[0])
-    when "payload"  then set_payload(value[0])
+    when "course"   then set_course(value)
+    when "task"     then set_task(value)
+    when "payload"  then set_payload(value)
     when "payloads" then set_payloads(value)
     else UNKNOWN_OPTION.call(option)
     end
@@ -150,8 +152,8 @@ end
 def cmd_show(cmd, args)
   cmd_with_args(cmd, args) do |option, value|
     case option
-    when "task" then show_task(value[0])
-    when "inform" then show_inform(value[0])
+    when "task" then show_task(value)
+    when "inform" then show_inform(value)
     else UNKNOWN_OPTION.call(option)
     end
   end
@@ -178,12 +180,19 @@ def cmd_get(cmd, args)
 end
 
 def cmd_boost(cmd, args)
-  cmd_with_args(cmd, args, 1) do |value, desert|
+  cmd_with_args(cmd, args) do |value, desert|
     if (value =~ /^(\d+)$/) == 0
-      value.to_i.times { @space[@space[@space[:user]][:course]][:payload].boost }
-      now = @space[@space[@space[:user]][:course]][:payload].time :sec
-      before = now - value.to_i * 60
-      puts "\033[32m[+]\033[0m from: #{before / 60} (sec: #{before}) to: #{now / 60} (sec: #{now})"
+      payload = [@space[@space[@space[:user]][:course]][:payload]].flatten
+      threads = []
+      payload.each do |x|
+        threads << Thread.new do
+          value.to_i.times { x.boost }
+          now = x.time :sec
+          before = now - value.to_i * 60
+          puts "\033[32m[+]\033[0m from: #{before / 60} (sec: #{before}) to: #{now / 60} (sec: #{now})"
+        end
+      end
+      threads.each(&:join)
     end
   end
 end
@@ -248,8 +257,8 @@ end
 
 def cmd_payload(cmd, args)
   cmd_without_args(cmd, args) do
-    if @space[@space[@space[:user]][:course]].has_key? :payload
-      puts @space[@space[@space[:user]][:course]][:payload].name
+    if payload = @space.dig(@space[@space[:user]][:course], :payload)
+      [payload].flatten.each { |x| puts x.name }
     else
       MUST_SPECIFY.call("payload")
     end
@@ -259,7 +268,7 @@ end
 def set_course(value)
   if (value =~ /^(\d+)$/) == 0
     if @space[:user].courses.length > value.to_i
-      @space[@space[:user]] = {} if !@space[@space[:user]].is_a? Hash
+      @space[@space[:user]] ||= {}
       @space[@space[:user]][:course] = @space[:user].courses[value.to_i]
       print "course => #{@space[@space[:user]][:course].name}\n"
     elsif @space[:user].courses.empty?
@@ -276,7 +285,7 @@ def set_task(value)
   if (value =~ /^(\d+)$/) == 0
     if @space[@space[:user]][:course].respond_to? :tasks
       if @space[@space[:user]][:course].tasks.length > value.to_i
-        @space[@space[@space[:user]][:course]] = {} if !@space[@space[@space[:user]][:course]].is_a? Hash
+        @space[@space[@space[:user]][:course]] ||= {}
         @space[@space[@space[:user]][:course]][:task] = @space[@space[:user]][:course].tasks[value.to_i]
         print "task => #{@space[@space[@space[:user]][:course]][:task].title}\n"
       elsif @space[@space[:user]][:course].tasks.empty?
@@ -314,7 +323,38 @@ def set_payload(value)
 end
 
 def set_payloads(value)
-  if value.all? { |x| (x =~ /^(\d+)$/) == 0 }
+  value = value.split(",").map(&:strip)
+  if value.all? { |x| (x =~ /^(\*|\d+|\d+-\d+)$/) == 0 }
+    if course = @space.dig(@space[:user], :course)
+      if payloads = @space.dig(course, :payloads)
+        if value.include? "*"
+          @space[@space[@space[:user]][:course]][:payload] = payloads
+          print "payloads => [all!]\n"
+        else
+          idx = value.map do |x|
+            if x.include? "-"
+              range = x.split("-").map(&:to_i)
+              Range.new(*range).to_a
+            else
+              x.to_i
+            end
+          end.flatten.uniq
+          accept = payloads.length
+          if idx.all? { |x| x < accept }
+            @space[@space[@space[:user]][:course]][:payload] = idx.inject([]) { |memo, v| memo << payloads[v] }
+            print "payloads => #{idx.to_s}\n"
+          else
+            VALUE_OUT_OF_RANGE.call
+          end
+        end
+      else
+        EMPTY_SHOULD_EXEC.call("Payload", "payloads")
+      end
+    else
+      MUST_SPECIFY.call("course")
+    end
+  else
+    print "\033[33m[!]\033[0m Only numbers (>= 0) or ranges (like: 1-19) or * (select all) acceptable\n"
   end
 end
 
@@ -340,7 +380,7 @@ def show_inform(value)
   if (value =~ /^(\d+)$/) == 0
     if @space[@space[:user]][:course].respond_to? :informs
       if @space[@space[:user]][:course].informs.length > value.to_i
-        @space[@space[@space[:user]][:course]] = {} if !@space[@space[@space[:user]][:course]].is_a? Hash
+        @space[@space[@space[:user]][:course]] ||= {}
         if !@space[@space[@space[:user]][:course]].has_key? :informs
           @space[@space[@space[:user]][:course]][:informs] = []
           threads = []
