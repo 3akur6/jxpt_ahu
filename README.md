@@ -18,7 +18,7 @@ type `help` to access commands description
 
 * list courses teacher assigned some tasks which haven't been finished
 * get tasks in more detail, such as pubtime, deadline, submit link, attachment
-* easily download attachments (just type get since you set task)
+* easily download attachments (just type `get` since you set task)
 * have a glance at the announcement from teacher
 * involve in course topics (only see teachers in fact >\_<|||)
 * query online resources' visit times and learning time
