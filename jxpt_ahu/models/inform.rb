@@ -12,7 +12,7 @@ class Inform
     @lid = options[:lid]
     @issuer = options[:issuer]
     @order = options[:order]
-    *desert, type, id = options[:url].split(/[\/?]/)
+    *_, type, id = options[:url].split(/[\/?]/)
     case type
     when "message_content.jsp"
       @id = id.scan(/nid=(\d+)/)[0][0]

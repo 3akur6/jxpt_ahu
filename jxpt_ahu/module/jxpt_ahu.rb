@@ -8,4 +8,48 @@ module JxptAhu
   VALUE_OUT_OF_RANGE = Proc.new { print "\033[31m[-]\033[0m Wrong assignment (value out of length)\n" }
   EMPTY_SHOULD_EXEC = Proc.new { |arr, cmd| print "\033[33m[!]\033[0m #{arr} list empty\n"; print "\nYou should exec \033[34m#{cmd}\033[0m firstly\n\n" }
   ONLY_NUMBER_ACCEPTABLE = Proc.new { print "\033[33m[!]\033[0m Only number larger than or equal to 0 acceptable\n" }
+
+  def cmd_without_args(cmd, rest, &block)
+    if rest.empty?
+      tries = 0
+      begin
+        block.call
+      rescue RuntimeError
+        sleep(2 ** tries)
+        tries += 1
+        retry
+      end
+    elsif rest.start_with? " "
+      TOO_MANY_ARGUMENT.call
+    else
+      UNKNOWN_COMMAND.call(cmd + rest)
+      DID_YOU_MEAN.call(cmd)
+    end
+  end
+
+  def cmd_with_args(cmd, rest, expect=2, &block)
+    if rest.empty?
+      USAGE_FOR_MULTI.call(cmd)
+    elsif rest.start_with? " "
+      args = rest.split(/[, ]/).reject { |x| x == "" }
+      args = [args[0], args.drop(1).join(",")]
+      if args.length == expect
+        option, value = args
+        tries = 0
+        begin
+          block.call(option, value)
+        rescue RuntimeError
+          sleep(2 ** tries)
+          tries += 1
+          retry
+        end
+      else
+        USAGE_FOR_MULTI.call(cmd)
+      end
+    else
+      UNKNOWN_COMMAND.call(cmd + rest)
+      DID_YOU_MEAN.call(cmd)
+    end
+  end
+
 end

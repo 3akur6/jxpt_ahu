@@ -4,49 +4,6 @@ require_relative '../module/jxpt_ahu'
 
 include JxptAhu
 
-def cmd_without_args(cmd, rest, &block)
-  if rest.empty?
-    tries = 0
-    begin
-      block.call
-    rescue RuntimeError
-      sleep(2 ** tries)
-      tries += 1
-      retry
-    end
-  elsif rest.start_with? " "
-    TOO_MANY_ARGUMENT.call
-  else
-    UNKNOWN_COMMAND.call(cmd + rest)
-    DID_YOU_MEAN.call(cmd)
-  end
-end
-
-def cmd_with_args(cmd, rest, expect=2, &block)
-  if rest.empty?
-    USAGE_FOR_MULTI.call(cmd)
-  elsif rest.start_with? " "
-    args = rest.split(/[, ]/).reject { |x| x == "" }
-    args = [args[0], args.drop(1).join(",")]
-    if args.length == expect
-      option, value = args
-      tries = 0
-      begin
-        block.call(option, value)
-      rescue RuntimeError
-        sleep(2 ** tries)
-        tries += 1
-        retry
-      end
-    else
-      USAGE_FOR_MULTI.call(cmd)
-    end
-  else
-    UNKNOWN_COMMAND.call(cmd + rest)
-    DID_YOU_MEAN.call(cmd)
-  end
-end
-
 def cmd_exit(cmd, args)
   cmd_without_args(cmd, args) { exit }
 end
@@ -180,7 +137,7 @@ def cmd_get(cmd, args)
 end
 
 def cmd_boost(cmd, args)
-  cmd_with_args(cmd, args) do |value, desert|
+  cmd_with_args(cmd, args) do |value, _|
     if (value =~ /^(\d+)$/) == 0
       payload = [@space[@space[@space[:user]][:course]][:payload]].flatten
       threads = []
@@ -283,7 +240,7 @@ end
 
 def set_task(value)
   if (value =~ /^(\d+)$/) == 0
-    if @space[@space[:user]][:course].respond_to? :tasks
+    if @space[@space[:user]].dig(:course).respond_to? :tasks
       if @space[@space[:user]][:course].tasks.length > value.to_i
         @space[@space[@space[:user]][:course]] ||= {}
         @space[@space[@space[:user]][:course]][:task] = @space[@space[:user]][:course].tasks[value.to_i]
@@ -360,7 +317,8 @@ end
 
 def show_task(value)
   if (value =~ /^(\d+)$/) == 0
-    if @space[@space[:user]][:course].respond_to? :tasks
+    @space[@space[:user]] ||= {}
+    if @space[@space[:user]].dig(:course).respond_to? :tasks
       if @space[@space[:user]][:course].tasks.length > value.to_i
         task = @space[@space[:user]][:course].tasks[value.to_i]
         table = task.table
@@ -378,7 +336,8 @@ end
 
 def show_inform(value)
   if (value =~ /^(\d+)$/) == 0
-    if @space[@space[:user]][:course].respond_to? :informs
+    @space[@space[:user]] ||= {}
+    if @space[@space[:user]].dig(:course).respond_to? :informs
       if @space[@space[:user]][:course].informs.length > value.to_i
         @space[@space[@space[:user]][:course]] ||= {}
         if !@space[@space[@space[:user]][:course]].has_key? :informs
